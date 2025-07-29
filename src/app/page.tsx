@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 
+interface SearchEntry {
+  word: string;
+  result: string;
+  timestamp: number;
+}
+
 export default function Home() {
   const [word, setWord] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  
+  // Navigation history for back/forward functionality
+  const [navigationHistory, setNavigationHistory] = useState<SearchEntry[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const searchWord = async (searchTerm: string) => {
+  const searchWord = async (searchTerm: string, addToHistory: boolean = true) => {
     if (!searchTerm.trim()) return;
 
     setLoading(true);
@@ -31,15 +42,50 @@ export default function Home() {
       const data = await response.json();
       setResult(data.definition);
       
-      // Add to search history
+      // Add to search history (recent searches)
       setSearchHistory(prev => {
         const newHistory = [searchTerm.trim(), ...prev.filter(w => w !== searchTerm.trim())];
         return newHistory.slice(0, 10); // Keep only last 10 searches
       });
+
+      // Add to navigation history if not navigating
+      if (addToHistory && !isNavigating) {
+        const newEntry: SearchEntry = {
+          word: searchTerm.trim(),
+          result: data.definition,
+          timestamp: Date.now()
+        };
+        
+        setNavigationHistory(prev => {
+          // Remove any entries after current index (when going back and then searching new word)
+          const newHistory = prev.slice(0, currentIndex + 1);
+          return [...newHistory, newEntry];
+        });
+        
+        setCurrentIndex(prev => prev + 1);
+      }
     } catch (error) {
-      setResult("Sorry, something went wrong. Please try again.");
+      const errorMsg = "Sorry, something went wrong. Please try again.";
+      setResult(errorMsg);
+      
+      // Add error to navigation history too
+      if (addToHistory && !isNavigating) {
+        const newEntry: SearchEntry = {
+          word: searchTerm.trim(),
+          result: errorMsg,
+          timestamp: Date.now()
+        };
+        
+        setNavigationHistory(prev => {
+          const newHistory = prev.slice(0, currentIndex + 1);
+          return [...newHistory, newEntry];
+        });
+        
+        setCurrentIndex(prev => prev + 1);
+      }
     } finally {
       setLoading(false);
+      setIsNavigating(false);
     }
   };
 
@@ -51,6 +97,31 @@ export default function Home() {
   const handleWordClick = async (clickedWord: string) => {
     await searchWord(clickedWord);
   };
+
+  const goBack = () => {
+    if (currentIndex > 0) {
+      setIsNavigating(true);
+      const prevEntry = navigationHistory[currentIndex - 1];
+      setWord(prevEntry.word);
+      setResult(prevEntry.result);
+      setCurrentIndex(currentIndex - 1);
+      setIsNavigating(false);
+    }
+  };
+
+  const goForward = () => {
+    if (currentIndex < navigationHistory.length - 1) {
+      setIsNavigating(true);
+      const nextEntry = navigationHistory[currentIndex + 1];
+      setWord(nextEntry.word);
+      setResult(nextEntry.result);
+      setCurrentIndex(currentIndex + 1);
+      setIsNavigating(false);
+    }
+  };
+
+  const canGoBack = currentIndex > 0;
+  const canGoForward = currentIndex < navigationHistory.length - 1;
 
   const makeWordsClickable = (text: string) => {
     // Regular expression to match English words (excluding punctuation)
@@ -101,6 +172,39 @@ export default function Home() {
               英単語を調べて、分かりやすい英語で意味を学ぼう
             </p>
           </header>
+
+          {/* Navigation buttons */}
+          {navigationHistory.length > 1 && (
+            <div className="flex gap-2 mb-4">
+              {canGoBack && (
+                <button
+                  onClick={goBack}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  戻る
+                </button>
+              )}
+              {canGoForward && (
+                <button
+                  onClick={goForward}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 transition-colors"
+                >
+                  進む
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                {currentIndex + 1} / {navigationHistory.length}
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mb-8">
             <div className="flex gap-4">
