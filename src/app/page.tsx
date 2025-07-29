@@ -180,6 +180,125 @@ export default function Home() {
     return parts;
   };
 
+  const parseMarkdown = (text: string): React.ReactNode[] => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let key = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      if (line.trim() === '') {
+        // Empty line - add spacing
+        elements.push(<div key={key++} className="h-4" />);
+        continue;
+      }
+
+      // Handle headers (e.g., **Word** (*part of speech*))
+      if (line.match(/^\*\*[^*]+\*\*\s*\([^)]+\)\s*$/)) {
+        const headerMatch = line.match(/^\*\*([^*]+)\*\*\s*\(([^)]+)\)\s*$/);
+        if (headerMatch) {
+          elements.push(
+            <div key={key++} className="mb-4">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 inline">
+                {makeWordsClickable(headerMatch[1])}
+              </h3>
+              <span className="ml-3 text-lg text-gray-600 dark:text-gray-400 italic">
+                ({headerMatch[2]})
+              </span>
+            </div>
+          );
+          continue;
+        }
+      }
+
+      // Handle **Examples:** header
+      if (line.match(/^\*\*Examples:\*\*\s*$/)) {
+        elements.push(
+          <h4 key={key++} className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-3">
+            Examples:
+          </h4>
+        );
+        continue;
+      }
+
+      // Handle list items (- item)
+      if (line.match(/^-\s+/)) {
+        const listContent = line.replace(/^-\s+/, '');
+        elements.push(
+          <div key={key++} className="ml-6 mb-2 flex items-start">
+            <span className="text-blue-500 dark:text-blue-400 mr-3 mt-1">•</span>
+            <div className="text-gray-700 dark:text-gray-300">
+              {makeWordsClickable(listContent)}
+            </div>
+          </div>
+        );
+        continue;
+      }
+
+      // Handle regular paragraph with bold text
+      const processInlineFormatting = (text: string) => {
+        const parts: React.ReactNode[] = [];
+        let lastIndex = 0;
+        let partKey = 0;
+
+        // Match **bold** text
+        const boldRegex = /\*\*([^*]+)\*\*/g;
+        let match;
+
+        while ((match = boldRegex.exec(text)) !== null) {
+          // Add text before the match
+          if (match.index > lastIndex) {
+            const beforeText = text.slice(lastIndex, match.index);
+            const beforeParts = makeWordsClickable(beforeText);
+            beforeParts.forEach(part => {
+              if (typeof part === 'string') {
+                parts.push(part);
+              } else {
+                parts.push(<span key={partKey++}>{part}</span>);
+              }
+            });
+          }
+
+          // Add the bold text
+          parts.push(
+            <strong key={partKey++} className="font-bold text-gray-900 dark:text-gray-100">
+              {makeWordsClickable(match[1]).map((part, idx) => 
+                typeof part === 'string' ? part : <span key={idx}>{part}</span>
+              )}
+            </strong>
+          );
+
+          lastIndex = match.index + match[0].length;
+        }
+
+        // Add remaining text
+        if (lastIndex < text.length) {
+          const remainingText = text.slice(lastIndex);
+          const remainingParts = makeWordsClickable(remainingText);
+          remainingParts.forEach(part => {
+            if (typeof part === 'string') {
+              parts.push(part);
+            } else {
+              parts.push(<span key={partKey++}>{part}</span>);
+            }
+          });
+        }
+
+        return parts;
+      };
+
+      // Regular paragraph
+      elements.push(
+        <p key={key++} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+          {processInlineFormatting(line)}
+        </p>
+      );
+    }
+
+    return elements;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="flex h-screen">
@@ -320,8 +439,8 @@ export default function Home() {
                     「{word}」の意味
                   </h2>
                   <div className="prose dark:prose-invert max-w-none">
-                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                      {makeWordsClickable(result)}
+                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {parseMarkdown(result)}
                     </div>
                     {searchHistory.length > 0 && (
                       <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
