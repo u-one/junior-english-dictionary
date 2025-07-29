@@ -243,6 +243,50 @@ export default function Home() {
         continue;
       }
 
+      // Handle related words sections (Synonyms, Antonyms, Similar words)
+      const relatedWordMatch = line.match(/^\*\*([^:]+):\*\*\s+(.+)$/);
+      if (relatedWordMatch) {
+        const [, category, wordsText] = relatedWordMatch;
+        const words = wordsText.split(',').map(w => w.trim()).filter(w => w);
+        
+        if (words.length > 0) {
+          let categoryColor = '';
+          let categoryBg = '';
+          
+          if (category === 'Synonyms') {
+            categoryColor = 'text-emerald-600 dark:text-emerald-400';
+            categoryBg = 'bg-emerald-50 dark:bg-emerald-950';
+          } else if (category === 'Antonyms') {
+            categoryColor = 'text-rose-600 dark:text-rose-400';
+            categoryBg = 'bg-rose-50 dark:bg-rose-950';
+          } else if (category === 'Similar words') {
+            categoryColor = 'text-violet-600 dark:text-violet-400';
+            categoryBg = 'bg-violet-50 dark:bg-violet-950';
+          }
+
+          elements.push(
+            <div key={key++} className="mt-6">
+              <h4 className={`text-lg font-semibold ${categoryColor} mb-3`}>
+                {category}:
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {words.map((word, idx) => (
+                  <button
+                    key={`${category}-${word}-${idx}`}
+                    onClick={() => handleWordClick(word)}
+                    disabled={loading}
+                    className={`px-3 py-1 text-sm ${categoryBg} ${categoryColor} rounded-full hover:opacity-80 transition-opacity disabled:opacity-50 cursor-pointer`}
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+          continue;
+        }
+      }
+
       // Handle list items (- item)
       if (line.match(/^-\s+/)) {
         const listContent = line.replace(/^-\s+/, '');

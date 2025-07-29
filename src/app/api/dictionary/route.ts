@@ -33,6 +33,7 @@ Guidelines:
 - Include the part of speech (noun, verb, adjective, etc.)
 - ALWAYS include pronunciation using IPA (International Phonetic Alphabet)
 - Provide 1-2 simple example sentences
+- Include related words when available: synonyms, antonyms, and similar words
 - If it's a common word with multiple meanings, focus on the most common 1-2 meanings
 - Use present tense when possible
 - Avoid complex grammar structures
@@ -46,6 +47,10 @@ Format your response as:
 **Examples:**
 - [Example sentence 1]
 - [Example sentence 2]
+
+**Synonyms:** word1, word2, word3
+**Antonyms:** word1, word2
+**Similar words:** word1, word2, word3
 
 Please explain the word "${word}":`;
 
