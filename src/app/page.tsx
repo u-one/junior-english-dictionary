@@ -18,6 +18,7 @@ export default function Home() {
   const [navigationHistory, setNavigationHistory] = useState<SearchEntry[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const searchWord = async (searchTerm: string, addToHistory: boolean = true) => {
     if (!searchTerm.trim()) return;
@@ -123,6 +124,25 @@ export default function Home() {
   const canGoBack = currentIndex > 0;
   const canGoForward = currentIndex < navigationHistory.length - 1;
 
+  const navigateToEntry = (index: number) => {
+    if (index >= 0 && index < navigationHistory.length && index !== currentIndex) {
+      setIsNavigating(true);
+      const entry = navigationHistory[index];
+      setWord(entry.word);
+      setResult(entry.result);
+      setCurrentIndex(index);
+      setIsNavigating(false);
+    }
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('ja-JP', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   const makeWordsClickable = (text: string) => {
     // Regular expression to match English words (excluding punctuation)
     const wordRegex = /\b[a-zA-Z]{2,}\b/g;
@@ -162,8 +182,69 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        {navigationHistory.length > 0 && (
+          <div className={`${sidebarOpen ? 'w-80' : 'w-12'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}>
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              {sidebarOpen && (
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                  検索履歴
+                </h2>
+              )}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {sidebarOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  )}
+                </svg>
+              </button>
+            </div>
+            
+            {/* History List */}
+            {sidebarOpen && (
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-2">
+                  {navigationHistory.map((entry, index) => (
+                    <button
+                      key={`${entry.word}-${entry.timestamp}`}
+                      onClick={() => navigateToEntry(index)}
+                      disabled={loading}
+                      className={`w-full text-left p-3 rounded-lg mb-2 transition-colors ${
+                        index === currentIndex
+                          ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600'
+                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-2 border-transparent'
+                      } disabled:opacity-50`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {entry.word}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          {formatTimestamp(entry.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                        {entry.result.slice(0, 60)}...
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-12">
+            <div className="max-w-2xl mx-auto">
           <header className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
               Junior English Dictionary
@@ -266,6 +347,8 @@ export default function Home() {
               )}
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
