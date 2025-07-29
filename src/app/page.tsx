@@ -194,7 +194,28 @@ export default function Home() {
         continue;
       }
 
-      // Handle headers (e.g., **Word** (*part of speech*))
+      // Handle headers with pronunciation (e.g., **Word** /pronunciation/ (*part of speech*))
+      if (line.match(/^\*\*[^*]+\*\*\s*\/[^/]+\/\s*\([^)]+\)\s*$/)) {
+        const headerMatch = line.match(/^\*\*([^*]+)\*\*\s*\/([^/]+)\/\s*\(([^)]+)\)\s*$/);
+        if (headerMatch) {
+          elements.push(
+            <div key={key++} className="mb-4">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 inline">
+                {makeWordsClickable(headerMatch[1])}
+              </h3>
+              <span className="ml-3 text-xl text-gray-700 dark:text-gray-300 font-mono">
+                /{headerMatch[2]}/
+              </span>
+              <span className="ml-3 text-lg text-gray-600 dark:text-gray-400 italic">
+                ({headerMatch[3]})
+              </span>
+            </div>
+          );
+          continue;
+        }
+      }
+
+      // Handle headers without pronunciation (e.g., **Word** (*part of speech*))
       if (line.match(/^\*\*[^*]+\*\*\s*\([^)]+\)\s*$/)) {
         const headerMatch = line.match(/^\*\*([^*]+)\*\*\s*\(([^)]+)\)\s*$/);
         if (headerMatch) {

@@ -31,6 +31,7 @@ Guidelines:
 - Use simple vocabulary (elementary to intermediate level)
 - Keep sentences short and clear
 - Include the part of speech (noun, verb, adjective, etc.)
+- ALWAYS include pronunciation using IPA (International Phonetic Alphabet)
 - Provide 1-2 simple example sentences
 - If it's a common word with multiple meanings, focus on the most common 1-2 meanings
 - Use present tense when possible
@@ -38,7 +39,7 @@ Guidelines:
 - Make it educational and friendly
 
 Format your response as:
-**[Word]** (*part of speech*)
+**[Word]** /[IPA pronunciation]/ (*part of speech*)
 
 [Simple definition in 1-2 sentences]
 
