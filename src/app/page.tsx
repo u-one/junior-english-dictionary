@@ -6,13 +6,14 @@ export default function Home() {
   const [word, setWord] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!word.trim()) return;
+  const searchWord = async (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
 
     setLoading(true);
     setResult("");
+    setWord(searchTerm.trim());
 
     try {
       const response = await fetch("/api/dictionary", {
@@ -20,7 +21,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ word: word.trim() }),
+        body: JSON.stringify({ word: searchTerm.trim() }),
       });
 
       if (!response.ok) {
@@ -29,11 +30,63 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data.definition);
+      
+      // Add to search history
+      setSearchHistory(prev => {
+        const newHistory = [searchTerm.trim(), ...prev.filter(w => w !== searchTerm.trim())];
+        return newHistory.slice(0, 10); // Keep only last 10 searches
+      });
     } catch (error) {
       setResult("Sorry, something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await searchWord(word);
+  };
+
+  const handleWordClick = async (clickedWord: string) => {
+    await searchWord(clickedWord);
+  };
+
+  const makeWordsClickable = (text: string) => {
+    // Regular expression to match English words (excluding punctuation)
+    const wordRegex = /\b[a-zA-Z]{2,}\b/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = wordRegex.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+
+      // Add the clickable word
+      const matchedWord = match[0];
+      parts.push(
+        <button
+          key={`${match.index}-${matchedWord}`}
+          onClick={() => handleWordClick(matchedWord)}
+          className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0.5 inline"
+          disabled={loading}
+        >
+          {matchedWord}
+        </button>
+      );
+
+      lastIndex = match.index + matchedWord.length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts;
   };
 
   return (
@@ -82,9 +135,28 @@ export default function Home() {
                     「{word}」の意味
                   </h2>
                   <div className="prose dark:prose-invert max-w-none">
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                      {result}
-                    </p>
+                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {makeWordsClickable(result)}
+                    </div>
+                    {searchHistory.length > 0 && (
+                      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                          最近の検索:
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {searchHistory.map((historyWord, index) => (
+                            <button
+                              key={`${historyWord}-${index}`}
+                              onClick={() => handleWordClick(historyWord)}
+                              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                              disabled={loading}
+                            >
+                              {historyWord}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
