@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import AuthButton from "../components/AuthButton";
+import LoginModal from "../components/LoginModal";
 
 interface SearchEntry {
   word: string;
@@ -22,6 +23,19 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Guest search limit management
+  const [guestSearchCount, setGuestSearchCount] = useState(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingSearch, setPendingSearch] = useState<string | null>(null);
+
+  // Load guest search count on mount
+  useEffect(() => {
+    const savedCount = localStorage.getItem('guestSearchCount');
+    if (savedCount) {
+      setGuestSearchCount(parseInt(savedCount, 10));
+    }
+  }, []);
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -38,8 +52,18 @@ export default function Home() {
           console.error('Failed to load user data:', error);
         }
       }
+      // Reset guest search count when user logs in
+      setGuestSearchCount(0);
+      localStorage.removeItem('guestSearchCount');
     }
   }, [session?.user?.id]);
+
+  // Save guest search count to localStorage
+  useEffect(() => {
+    if (!session?.user?.id && guestSearchCount > 0) {
+      localStorage.setItem('guestSearchCount', guestSearchCount.toString());
+    }
+  }, [guestSearchCount, session?.user?.id]);
 
   // Save user data to localStorage whenever data changes
   useEffect(() => {
@@ -55,12 +79,38 @@ export default function Home() {
     }
   }, [session?.user?.id, searchHistory, navigationHistory, currentIndex]);
 
+  // Handle pending search after login
+  useEffect(() => {
+    if (session?.user && pendingSearch) {
+      searchWordInternal(pendingSearch);
+      setPendingSearch(null);
+      setShowLoginModal(false);
+    }
+  }, [session?.user, pendingSearch]);
+
   const searchWord = async (searchTerm: string, addToHistory: boolean = true) => {
     if (!searchTerm.trim()) return;
 
+    // Check search limit for guest users
+    if (!session?.user && guestSearchCount >= 2) {
+      setPendingSearch(searchTerm.trim());
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Execute the search
+    await searchWordInternal(searchTerm.trim(), addToHistory);
+
+    // Increment guest search count
+    if (!session?.user) {
+      setGuestSearchCount(prev => prev + 1);
+    }
+  };
+
+  const searchWordInternal = async (searchTerm: string, addToHistory: boolean = true) => {
     setLoading(true);
     setResult("");
-    setWord(searchTerm.trim());
+    setWord(searchTerm);
 
     try {
       const response = await fetch("/api/dictionary", {
@@ -68,7 +118,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ word: searchTerm.trim() }),
+        body: JSON.stringify({ word: searchTerm }),
       });
 
       if (!response.ok) {
@@ -80,14 +130,14 @@ export default function Home() {
       
       // Add to search history (recent searches)
       setSearchHistory(prev => {
-        const newHistory = [searchTerm.trim(), ...prev.filter(w => w !== searchTerm.trim())];
+        const newHistory = [searchTerm, ...prev.filter(w => w !== searchTerm)];
         return newHistory.slice(0, 10); // Keep only last 10 searches
       });
 
       // Add to navigation history if not navigating
       if (addToHistory && !isNavigating) {
         const newEntry: SearchEntry = {
-          word: searchTerm.trim(),
+          word: searchTerm,
           result: data.definition,
           timestamp: Date.now()
         };
@@ -107,7 +157,7 @@ export default function Home() {
       // Add error to navigation history too
       if (addToHistory && !isNavigating) {
         const newEntry: SearchEntry = {
-          word: searchTerm.trim(),
+          word: searchTerm,
           result: errorMsg,
           timestamp: Date.now()
         };
@@ -196,9 +246,14 @@ export default function Home() {
       parts.push(
         <button
           key={`${match.index}-${matchedWord}`}
-          onClick={() => handleWordClick(matchedWord)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleWordClick(matchedWord);
+          }}
           className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0.5 inline"
           disabled={loading}
+          type="button"
         >
           {matchedWord}
         </button>
@@ -575,6 +630,16 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          setPendingSearch(null);
+        }}
+        searchCount={guestSearchCount + 1}
+      />
     </div>
   );
 }
