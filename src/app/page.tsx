@@ -401,10 +401,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="flex h-screen">
+      <div className="flex h-screen max-md:flex-col">
         {/* Sidebar */}
         {navigationHistory.length > 0 && (
-          <div className={`${sidebarOpen ? 'w-80' : 'w-12'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}>
+          <div className={`${sidebarOpen ? 'w-72 max-md:w-full' : 'w-12 max-md:w-full'} ${sidebarOpen ? 'max-md:h-64' : 'max-md:h-12'} bg-white dark:bg-gray-800 border-r max-md:border-b border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col shrink-0`}>
             {/* Sidebar Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               {sidebarOpen && (
@@ -461,23 +461,20 @@ export default function Home() {
         )}
         
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="container mx-auto px-4 py-12">
-            <div className="max-w-2xl mx-auto">
-          <header className="text-center mb-12">
-            <div className="flex justify-between items-start mb-8">
-              <div className="flex-1"></div>
-              <div className="flex-1 text-center">
-                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                  Junior English Dictionary
-                </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-300">
-                  英単語を調べて、分かりやすい英語で意味を学ぼう
-                </p>
-              </div>
-              <div className="flex-1 flex justify-end">
-                <AuthButton />
-              </div>
+        <div className="flex-1 overflow-auto max-md:h-auto">
+          <div className="container mx-auto px-6 py-8 max-md:px-4 max-md:py-6">
+            <div className="max-w-4xl mx-auto">
+          <header className="mb-8">
+            <div className="flex justify-between items-center mb-6 max-md:flex-col max-md:gap-4">
+              <h1 className="text-3xl max-md:text-2xl font-bold text-gray-800 dark:text-gray-100">
+                Junior English Dictionary
+              </h1>
+              <AuthButton />
+            </div>
+            <div className="text-center">
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                英単語を調べて、分かりやすい英語で意味を学ぼう
+              </p>
             </div>
           </header>
 
