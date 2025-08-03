@@ -42,7 +42,7 @@ Guidelines:
 Format your response as:
 **[Word]** /[IPA pronunciation]/ (*part of speech*)
 
-[Simple definition in 1-2 sentences]
+[Simple definition in 1-2 sentences without using "Definition:" label]
 
 **Examples:**
 - [Example sentence 1]

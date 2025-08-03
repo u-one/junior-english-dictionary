@@ -229,45 +229,65 @@ export default function Home() {
   };
 
   const makeWordsClickable = (text: string) => {
-    // Regular expression to match English words (excluding punctuation)
-    const wordRegex = /\b[a-zA-Z]{2,}\b/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
+    // Split the text into chunks to process smaller segments
+    const chunks = text.split(/(\s{2,}|[.!?]\s+)/); // Split by multiple spaces or sentence endings
+    const allParts = [];
+    
+    chunks.forEach((chunk, chunkIndex) => {
+      if (/^\s*$/.test(chunk)) {
+        // If chunk is just whitespace, add it as-is
+        allParts.push(chunk);
+        return;
+      }
+      
+      // Process each chunk for clickable words
+      const wordRegex = /\b[a-zA-Z]{2,}\b/g;
+      const parts = [];
+      let lastIndex = 0;
+      let match;
 
-    while ((match = wordRegex.exec(text)) !== null) {
-      // Add text before the match
-      if (match.index > lastIndex) {
-        parts.push(text.slice(lastIndex, match.index));
+      while ((match = wordRegex.exec(chunk)) !== null) {
+        // Add text before the match
+        if (match.index > lastIndex) {
+          parts.push(chunk.slice(lastIndex, match.index));
+        }
+
+        // Add the clickable word
+        const matchedWord = match[0];
+        parts.push(
+          <button
+            key={`chunk-${chunkIndex}-${match.index}-${matchedWord}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleWordClick(matchedWord);
+            }}
+            className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0.5 inline select-none"
+            disabled={loading}
+            type="button"
+            tabIndex={0}
+          >
+            {matchedWord}
+          </button>
+        );
+
+        lastIndex = match.index + matchedWord.length;
       }
 
-      // Add the clickable word
-      const matchedWord = match[0];
-      parts.push(
-        <button
-          key={`${match.index}-${matchedWord}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleWordClick(matchedWord);
-          }}
-          className="text-gray-700 dark:text-gray-300 hover:underline cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0.5 inline"
-          disabled={loading}
-          type="button"
-        >
-          {matchedWord}
-        </button>
-      );
+      // Add remaining text from this chunk
+      if (lastIndex < chunk.length) {
+        parts.push(chunk.slice(lastIndex));
+      }
+      
+      // Add all parts from this chunk to the main parts array
+      allParts.push(...parts);
+    });
 
-      lastIndex = match.index + matchedWord.length;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex));
-    }
-
-    return parts;
+    return allParts;
   };
 
   const parseMarkdown = (text: string): React.ReactNode[] => {
@@ -321,6 +341,26 @@ export default function Home() {
           );
           continue;
         }
+      }
+
+      // Handle **Definition:** header (with or without content)
+      if (line.match(/^\*\*Definition:\*\*(.*)$/)) {
+        const definitionMatch = line.match(/^\*\*Definition:\*\*\s*(.*)$/);
+        elements.push(
+          <h4 key={key++} className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-3">
+            Definition:
+          </h4>
+        );
+        
+        // If there's content after "Definition:", process it as a regular paragraph
+        if (definitionMatch && definitionMatch[1].trim()) {
+          elements.push(
+            <p key={key++} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 select-none">
+              {makeWordsClickable(definitionMatch[1].trim())}
+            </p>
+          );
+        }
+        continue;
       }
 
       // Handle **Examples:** header
@@ -445,7 +485,7 @@ export default function Home() {
 
       // Regular paragraph
       elements.push(
-        <p key={key++} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+        <p key={key++} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 select-none">
           {processInlineFormatting(line)}
         </p>
       );
@@ -599,7 +639,7 @@ export default function Home() {
                     「{word}」の意味
                   </h2>
                   <div className="prose dark:prose-invert max-w-none">
-                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed select-none">
                       {parseMarkdown(result)}
                     </div>
                     {searchHistory.length > 0 && (
