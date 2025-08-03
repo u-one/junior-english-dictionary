@@ -2,6 +2,7 @@
 
 import { signIn, signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 export default function AuthButton() {
   const { data: session, status } = useSession();
@@ -20,9 +21,11 @@ export default function AuthButton() {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           {session.user.image && (
-            <img
+            <Image
               src={session.user.image}
               alt={session.user.name || "User"}
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-full"
             />
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import AuthButton from "../components/AuthButton";
 import LoginModal from "../components/LoginModal";
@@ -79,15 +79,6 @@ export default function Home() {
     }
   }, [session?.user?.id, searchHistory, navigationHistory, currentIndex]);
 
-  // Handle pending search after login
-  useEffect(() => {
-    if (session?.user && pendingSearch) {
-      searchWordInternal(pendingSearch);
-      setPendingSearch(null);
-      setShowLoginModal(false);
-    }
-  }, [session?.user, pendingSearch]);
-
   const searchWord = async (searchTerm: string, addToHistory: boolean = true) => {
     if (!searchTerm.trim()) return;
 
@@ -107,7 +98,7 @@ export default function Home() {
     }
   };
 
-  const searchWordInternal = async (searchTerm: string, addToHistory: boolean = true) => {
+  const searchWordInternal = useCallback(async (searchTerm: string, addToHistory: boolean = true) => {
     setLoading(true);
     setResult("");
     setWord(searchTerm);
@@ -150,7 +141,7 @@ export default function Home() {
         
         setCurrentIndex(prev => prev + 1);
       }
-    } catch (error) {
+    } catch {
       const errorMsg = "Sorry, something went wrong. Please try again.";
       setResult(errorMsg);
       
@@ -173,7 +164,16 @@ export default function Home() {
       setLoading(false);
       setIsNavigating(false);
     }
-  };
+  }, [currentIndex, isNavigating]);
+
+  // Handle pending search after login
+  useEffect(() => {
+    if (session?.user && pendingSearch) {
+      searchWordInternal(pendingSearch);
+      setPendingSearch(null);
+      setShowLoginModal(false);
+    }
+  }, [session?.user, pendingSearch, searchWordInternal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +231,7 @@ export default function Home() {
   const makeWordsClickable = (text: string) => {
     // Split the text into chunks to process smaller segments
     const chunks = text.split(/(\s{2,}|[.!?]\s+)/); // Split by multiple spaces or sentence endings
-    const allParts = [];
+    const allParts: (string | React.JSX.Element)[] = [];
     
     chunks.forEach((chunk, chunkIndex) => {
       if (/^\s*$/.test(chunk)) {
