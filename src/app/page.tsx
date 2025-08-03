@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import AuthButton from "../components/AuthButton";
 
 interface SearchEntry {
   word: string;
@@ -9,6 +11,7 @@ interface SearchEntry {
 }
 
 export default function Home() {
+  const { data: session } = useSession();
   const [word, setWord] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,6 +22,38 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    if (session?.user?.id) {
+      const userKey = `user_${session.user.id}`;
+      const savedData = localStorage.getItem(userKey);
+      if (savedData) {
+        try {
+          const userData = JSON.parse(savedData);
+          setSearchHistory(userData.searchHistory || []);
+          setNavigationHistory(userData.navigationHistory || []);
+          setCurrentIndex(userData.currentIndex || -1);
+        } catch (error) {
+          console.error('Failed to load user data:', error);
+        }
+      }
+    }
+  }, [session?.user?.id]);
+
+  // Save user data to localStorage whenever data changes
+  useEffect(() => {
+    if (session?.user?.id) {
+      const userKey = `user_${session.user.id}`;
+      const userData = {
+        searchHistory,
+        navigationHistory,
+        currentIndex,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(userKey, JSON.stringify(userData));
+    }
+  }, [session?.user?.id, searchHistory, navigationHistory, currentIndex]);
 
   const searchWord = async (searchTerm: string, addToHistory: boolean = true) => {
     if (!searchTerm.trim()) return;
@@ -430,12 +465,20 @@ export default function Home() {
           <div className="container mx-auto px-4 py-12">
             <div className="max-w-2xl mx-auto">
           <header className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-              Junior English Dictionary
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              英単語を調べて、分かりやすい英語で意味を学ぼう
-            </p>
+            <div className="flex justify-between items-start mb-8">
+              <div className="flex-1"></div>
+              <div className="flex-1 text-center">
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                  Junior English Dictionary
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  英単語を調べて、分かりやすい英語で意味を学ぼう
+                </p>
+              </div>
+              <div className="flex-1 flex justify-end">
+                <AuthButton />
+              </div>
+            </div>
           </header>
 
           {/* Navigation buttons */}
